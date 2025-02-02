@@ -13,7 +13,7 @@ function ScraperUI() {
       setZipUrl(null);
   
       try {
-          const response = await fetch("http://localhost:5000/scrape", {
+          const response = await fetch("http://172.234.216.74:5000/scrape", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ subredditLink }),
@@ -24,7 +24,7 @@ function ScraperUI() {
           }
   
           const data = await response.json();
-          setZipUrl(`http://172.234.216.74/${data.zipUrl}`);
+          setZipUrl(`http://172.234.216.74:5000/${data.zipUrl}`);
           setMessage(data.message || "Scraping complete!");
       } catch (error) {
           console.error("Error:", error);
