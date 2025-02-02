@@ -6,7 +6,9 @@ puppeteer.use(StealthPlugin());
 
 async function scrapeSubreddit(req, res) {
     const { subredditLink } = req.body;
+const PROXY_SERVER = "194.233.69.90:3128"; 
 
+    
     const browser = await puppeteer.launch({
         headless: true,
         executablePath: "/usr/bin/google-chrome",
@@ -16,7 +18,8 @@ async function scrapeSubreddit(req, res) {
             "--disable-dev-shm-usage",
             "--disable-gpu",
             "--disable-software-rasterizer",
-            "--remote-debugging-port=9222"
+            "--remote-debugging-port=9222",
+             `--proxy-server=${PROXY_SERVER}`
         ]
     });
 
