@@ -24,7 +24,7 @@ function ScraperUI() {
           }
   
           const data = await response.json();
-          setZipUrl(`http://localhost:5000${data.zipUrl}`);
+          setZipUrl(`http://172.234.216.74/${data.zipUrl}`);
           setMessage(data.message || "Scraping complete!");
       } catch (error) {
           console.error("Error:", error);
