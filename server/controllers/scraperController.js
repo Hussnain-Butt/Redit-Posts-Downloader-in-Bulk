@@ -1,79 +1,48 @@
 const puppeteer = require("puppeteer-extra");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
-const axios = require("axios");
 
 puppeteer.use(StealthPlugin());
 
-// 🔹 Get a new proxy every 5 seconds
-async function getProxy() {
-    try {
-        const response = await axios.get("https://proxylist.geonode.com/api/proxy-list?limit=10&page=1&sort_by=lastChecked&sort_type=desc");
-        const proxies = response.data.data;
-
-        for (const proxy of proxies) {
-            const proxyUrl = `${proxy.ip}:${proxy.port}`;
-            if (await testProxy(proxyUrl)) {
-                console.log(`✅ Using Working Proxy: ${proxyUrl}`);
-                return proxyUrl;
-            }
-        }
-    } catch (error) {
-        console.error("❌ Failed to fetch proxy:", error);
-    }
-    return null;
-}
-
-// ✅ Function to Test if Proxy is Working
-async function testProxy(proxyUrl) {
-    try {
-        const response = await axios.get("https://www.reddit.com", {
-            proxy: { host: proxyUrl.split(":")[0], port: proxyUrl.split(":")[1] },
-            timeout: 5000
-        });
-        return response.status === 200;
-    } catch (error) {
-        return false;
-    }
-}
+// 🔹 PAID PROXY DETAILS (Update this)
+const PROXY_HOST = "185.203.137.61";
+const PROXY_PORT = "45258";
+const PROXY_USERNAME = "lvgKVYVu9978pX5";
+const PROXY_PASSWORD = "Eh0jDuOcU9wI1pl";
 
 async function scrapeSubreddit(req, res) {
     const { subredditLink } = req.body;
 
-    const proxyServer = await getProxy(); // Get a fresh proxy
-    if (!proxyServer) {
-        return res.status(500).send("❌ No valid proxy found!");
-    }
-
-   const browser = await puppeteer.launch({
-    headless: true,
-    executablePath: "/usr/bin/google-chrome",
-    args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-gpu",
-        "--disable-software-rasterizer",
-        "--remote-debugging-port=9222",
-        "--proxy-server=socks5://148.66.130.53:7830" // ✅ Use SOCKS5 Proxy
-    ]
-});
-
+    const browser = await puppeteer.launch({
+        headless: true,
+        executablePath: "/usr/bin/google-chrome",
+        args: [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-gpu",
+            "--disable-software-rasterizer",
+            `--proxy-server=http://${PROXY_HOST}:${PROXY_PORT}` // ✅ Set Paid Proxy
+        ]
+    });
 
     const page = await browser.newPage();
 
-    try {
-        await page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
-        await page.setViewport({ width: 1280, height: 720 });
+    // ✅ Enter Proxy Authentication
+    await page.authenticate({
+        username: PROXY_USERNAME,
+        password: PROXY_PASSWORD
+    });
 
+    try {
         console.log(`🌍 Navigating to: ${subredditLink}`);
         await page.goto(subredditLink, { waitUntil: "networkidle2", timeout: 120000 });
 
         // ✅ Check if Reddit blocked the request
         const bodyText = await page.evaluate(() => document.body.innerText);
         if (bodyText.includes("You've been blocked by network security")) {
-            console.error("❌ Reddit blocked your request! Switching proxy...");
+            console.error("❌ Reddit blocked your request! Try another proxy...");
             await browser.close();
-            return res.status(403).send("Reddit blocked this request. Trying another proxy...");
+            return res.status(403).send("Reddit blocked this request.");
         }
 
         // ✅ Extract Image URLs
@@ -98,11 +67,5 @@ async function scrapeSubreddit(req, res) {
         await browser.close();
     }
 }
-
-// ✅ Auto-Rotate Proxy Every 5 Seconds
-setInterval(async () => {
-    console.log("🔄 Rotating Proxy...");
-    await getProxy();
-}, 5000); // Rotate every 5 seconds
 
 module.exports = { scrapeSubreddit };
