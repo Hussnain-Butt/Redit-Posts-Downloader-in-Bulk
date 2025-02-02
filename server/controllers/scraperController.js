@@ -44,19 +44,20 @@ async function scrapeSubreddit(req, res) {
         return res.status(500).send("❌ No valid proxy found!");
     }
 
-    const browser = await puppeteer.launch({
-        headless: true,
-        executablePath: "/usr/bin/google-chrome",
-        args: [
-            "--no-sandbox",
-            "--disable-setuid-sandbox",
-            "--disable-dev-shm-usage",
-            "--disable-gpu",
-            "--disable-software-rasterizer",
-            "--remote-debugging-port=9222",
-            `--proxy-server=${proxyServer}` // ✅ Set rotating proxy
-        ]
-    });
+   const browser = await puppeteer.launch({
+    headless: true,
+    executablePath: "/usr/bin/google-chrome",
+    args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+        "--disable-software-rasterizer",
+        "--remote-debugging-port=9222",
+        "--proxy-server=socks5://148.66.130.53:7830" // ✅ Use SOCKS5 Proxy
+    ]
+});
+
 
     const page = await browser.newPage();
 
