@@ -15,7 +15,19 @@ async function scrapeSubreddit(req, res) {
     // Clear the downloads folder
     clearFolder(downloadFolder);
 
-    const browser = await puppeteer.launch({ headless: true });
+        // ✅ Correct Puppeteer Launch Configuration with Google Chrome Path
+    const browser = await puppeteer.launch({
+        headless: true,
+        executablePath: "/usr/bin/google-chrome", // Google Chrome ka exact path
+        args: [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-gpu",
+            "--disable-software-rasterizer",
+            "--remote-debugging-port=9222"
+        ]
+    });
     const page = await browser.newPage();
 
     try {
