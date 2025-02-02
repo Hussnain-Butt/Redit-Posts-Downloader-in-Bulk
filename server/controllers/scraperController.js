@@ -9,15 +9,31 @@ async function getProxy() {
     try {
         const response = await axios.get("https://proxylist.geonode.com/api/proxy-list?limit=10&page=1&sort_by=lastChecked&sort_type=desc");
         const proxies = response.data.data;
-        if (proxies.length > 0) {
-            const proxy = proxies[Math.floor(Math.random() * proxies.length)]; // Random Proxy
-            console.log(`🔄 Using Proxy: ${proxy.ip}:${proxy.port}`);
-            return `${proxy.ip}:${proxy.port}`;
+
+        for (const proxy of proxies) {
+            const proxyUrl = `${proxy.ip}:${proxy.port}`;
+            if (await testProxy(proxyUrl)) {
+                console.log(`✅ Using Working Proxy: ${proxyUrl}`);
+                return proxyUrl;
+            }
         }
     } catch (error) {
         console.error("❌ Failed to fetch proxy:", error);
     }
     return null;
+}
+
+// ✅ Function to Test if Proxy is Working
+async function testProxy(proxyUrl) {
+    try {
+        const response = await axios.get("https://www.reddit.com", {
+            proxy: { host: proxyUrl.split(":")[0], port: proxyUrl.split(":")[1] },
+            timeout: 5000
+        });
+        return response.status === 200;
+    } catch (error) {
+        return false;
+    }
 }
 
 async function scrapeSubreddit(req, res) {
