@@ -7,9 +7,6 @@ puppeteer.use(StealthPlugin());
 async function scrapeSubreddit(req, res) {
     const { subredditLink } = req.body;
 
-    // ✅ Use Free Proxy (Change with working proxy from SSLProxies)
-    const PROXY_SERVER = "194.233.69.90:3128"; // Replace with a valid proxy
-
     const browser = await puppeteer.launch({
         headless: true,
         executablePath: "/usr/bin/google-chrome",
@@ -19,15 +16,14 @@ async function scrapeSubreddit(req, res) {
             "--disable-dev-shm-usage",
             "--disable-gpu",
             "--disable-software-rasterizer",
-            "--remote-debugging-port=9222",
-            `--proxy-server=${PROXY_SERVER}` // ✅ Use Free Proxy
+            "--remote-debugging-port=9222"
         ]
     });
 
     const page = await browser.newPage();
 
     try {
-        // ✅ Set Random User-Agent
+        // ✅ Set Random User-Agent to Avoid Detection
         const userAgent = randomUserAgent.getRandom();
         await page.setUserAgent(userAgent);
         await page.setViewport({ width: 1280, height: 720 });
@@ -39,7 +35,7 @@ async function scrapeSubreddit(req, res) {
         const bodyText = await page.evaluate(() => document.body.innerText);
         if (bodyText.includes("You've been blocked by network security")) {
             console.error("❌ Reddit blocked your request!");
-            res.status(403).send("Reddit blocked your request! Try a different proxy.");
+            res.status(403).send("Reddit blocked your request! Use a proxy.");
             await browser.close();
             return;
         }
