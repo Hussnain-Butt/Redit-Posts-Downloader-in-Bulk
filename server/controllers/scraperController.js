@@ -41,7 +41,8 @@ async function scrapeSubreddit(req, res) {
         });
 
         console.log(`Navigating to subreddit: ${subredditLink}`);
-        await page.goto(subredditLink, { waitUntil: "networkidle2", timeout: 60000 });
+        await page.goto(subredditLink, { waitUntil: "networkidle2", timeout: 120000 });
+console.log(await page.content()); // ✅ Debugging ke liye HTML ka output show karega
 
         // Check if the subreddit is private or restricted
         const bodyText = await page.evaluate(() => document.body.innerText);
