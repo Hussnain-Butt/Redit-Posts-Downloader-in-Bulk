@@ -5,34 +5,37 @@ const path = require("path");
 const fs = require("fs");
 const { downloadImage, createZip, clearFolder } = require("../utils/fileUtils");
 
-puppeteer.use(StealthPlugin());
+puppeteer.use(StealthPlugin()); // ✅ Stealth mode enable
 
 async function scrapeSubreddit(req, res) {
     const { subredditLink } = req.body;
     const downloadFolder = "./downloads";
     const zipFilePath = path.join(downloadFolder, "subreddit-images.zip");
 
-    // Clear the downloads folder
+    // ✅ Clear folder before downloading images
     clearFolder(downloadFolder);
 
+    // ✅ Use a Proxy (Change with your own proxy)
+    const PROXY_SERVER = "http://your-proxy-server.com:PORT"; 
 
-
- const browser = await puppeteer.launch({
+    const browser = await puppeteer.launch({
         headless: true,
-        executablePath: "/usr/bin/google-chrome", // Google Chrome ka exact path
+        executablePath: "/usr/bin/google-chrome",
         args: [
             "--no-sandbox",
             "--disable-setuid-sandbox",
             "--disable-dev-shm-usage",
             "--disable-gpu",
             "--disable-software-rasterizer",
-            "--remote-debugging-port=9222"
+            "--remote-debugging-port=9222",
+            `--proxy-server=${PROXY_SERVER}` // ✅ Add a Proxy Server
         ]
     });
+
     const page = await browser.newPage();
 
     try {
-        // Set user agent and viewport
+        // ✅ Set Random User-Agent to Avoid Detection
         const userAgent = randomUserAgent.getRandom();
         await page.setUserAgent(userAgent);
         await page.setViewport({
@@ -42,71 +45,45 @@ async function scrapeSubreddit(req, res) {
 
         console.log(`Navigating to subreddit: ${subredditLink}`);
         await page.goto(subredditLink, { waitUntil: "networkidle2", timeout: 120000 });
-console.log(await page.content()); // ✅ Debugging ke liye HTML ka output show karega
 
-        // Check if the subreddit is private or restricted
+        // ✅ Check if Access is Blocked
         const bodyText = await page.evaluate(() => document.body.innerText);
-        if (bodyText.includes("This community is private") || bodyText.includes("Log in to continue")) {
-            console.error("The subreddit is private or requires login.");
-            res.status(403).send("The subreddit is private or requires login.");
+        if (bodyText.includes("You've been blocked by network security")) {
+            console.error("❌ Reddit blocked your request!");
+            res.status(403).send("Reddit blocked your request! Use a proxy.");
             await browser.close();
             return;
         }
 
-        let imageUrls = [];
-        let retries = 0;
-        let lastHeight = await page.evaluate("document.body.scrollHeight");
+        // ✅ Extract Images from the Page
+        let imageUrls = await page.evaluate(() => {
+            return Array.from(document.querySelectorAll("img"))
+                .map(img => img.getAttribute("src") || img.getAttribute("srcset")?.split(",")[0].trim())
+                .filter(src => src && src.startsWith("http") && !src.includes("sprite")); // Remove invalid URLs
+        });
 
-        // Infinite scrolling to load all posts
-        while (true) {
-        const newImageUrls = await page.evaluate(() => {
-    return Array.from(document.querySelectorAll("img"))
-        .map(img => img.getAttribute("src") || img.getAttribute("srcset")?.split(",")[0].trim()) // Extract 'src' or first 'srcset' URL
-        .filter(src => src && src.startsWith("http") && !src.includes("sprite")); // Remove invalid URLs
-});
-
-            console.log(`Found ${newImageUrls.length} new image URLs.`);
-            imageUrls = [...new Set([...imageUrls, ...newImageUrls])]; // Remove duplicates
-
-            // Scroll to the bottom
-            await page.evaluate("window.scrollTo(0, document.body.scrollHeight)");
-            await new Promise((resolve) => setTimeout(resolve, 2000));
-
-            const newHeight = await page.evaluate("document.body.scrollHeight");
-            if (newHeight === lastHeight) {
-                retries++;
-                if (retries > 3) {
-                    console.log("No more content to load.");
-                    break;
-                }
-            } else {
-                retries = 0;
-            }
-            lastHeight = newHeight;
-        }
+        console.log(`✅ Found ${imageUrls.length} image URLs.`);
 
         if (imageUrls.length === 0) {
-            console.error("No images found.");
             res.status(404).send("No images found.");
             return;
         }
 
-        // Download each image
+        // ✅ Download Images
         for (const [index, url] of imageUrls.entries()) {
             const fileName = `image${index + 1}.jpg`;
             await downloadImage(url, downloadFolder, fileName);
             console.log(`Downloaded ${fileName}`);
         }
 
-        // Create a ZIP file of all images
+        // ✅ Create ZIP File of Images
         createZip(downloadFolder, zipFilePath);
         console.log(`ZIP file created at ${zipFilePath}`);
 
-        // Send the ZIP URL to the frontend
-        const zipDownloadUrl = `/downloads/subreddit-images.zip`;
+        // ✅ Send ZIP URL to Frontend
         res.status(200).json({
             message: "Scraping complete",
-            zipUrl: zipDownloadUrl,
+            zipUrl: `/downloads/subreddit-images.zip`,
         });
 
         await browser.close();
