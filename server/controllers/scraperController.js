@@ -15,10 +15,10 @@ async function scrapeSubreddit(req, res) {
     // Clear the downloads folder
     clearFolder(downloadFolder);
 
-        // ✅ Correct Puppeteer Launch Configuration with Google Chrome Path
+    // ✅ Correct Puppeteer Launch Configuration with Google Chrome Path
     const browser = await puppeteer.launch({
         headless: true,
-        executablePath: "/usr/bin/google-chrome", // Google Chrome ka exact path
+        executablePath: "/usr/bin/google-chrome",
         args: [
             "--no-sandbox",
             "--disable-setuid-sandbox",
@@ -28,6 +28,7 @@ async function scrapeSubreddit(req, res) {
             "--remote-debugging-port=9222"
         ]
     });
+
     const page = await browser.newPage();
 
     try {
@@ -59,8 +60,8 @@ async function scrapeSubreddit(req, res) {
         while (true) {
             const newImageUrls = await page.evaluate(() => {
                 return Array.from(document.querySelectorAll("img#post-image, img.i18n-post-media-img"))
-                    .map((img) => img.src)
-                    .filter((src) => src); // Filter valid URLs
+                    .map(img => img.src || img.getAttribute('srcset')?.split(',')[0].trim()) // Extract 'src' or 'srcset' (first URL)
+                    .filter(src => src && src.startsWith("http")); // Filter valid URLs
             });
 
             console.log(`Found ${newImageUrls.length} new image URLs.`);
