@@ -58,10 +58,10 @@ async function scrapeSubreddit(req, res) {
 
         // Infinite scrolling to load all posts
         while (true) {
-           const newImageUrls = await page.evaluate(() => {
+        const newImageUrls = await page.evaluate(() => {
     return Array.from(document.querySelectorAll("img"))
-        .map(img => img.getAttribute("src") || img.getAttribute("srcset")?.split(",")[0].trim())
-        .filter(src => src && src.startsWith("http"));
+        .map(img => img.getAttribute("src") || img.getAttribute("srcset")?.split(",")[0].trim()) // Extract 'src' or first 'srcset' URL
+        .filter(src => src && src.startsWith("http") && !src.includes("sprite")); // Remove invalid URLs
 });
 
             console.log(`Found ${newImageUrls.length} new image URLs.`);
